@@ -72,8 +72,8 @@ find_package(Libcaf COMPONENTS core io probe probe_event REQUIRED)
 
 INCLUDE_DIRECTORIES(. include ${CMAKE_BINARY_DIR} ${LIBCAF_INCLUDE_DIRS})
 
-add_executable(distributed_calculator ./src/distributed_calculator.cpp)
-target_link_libraries(distributed_calculator ${CMAKE_DL_LIBS} ${LIBCAF_LIBRARIES})
+add_executable(probed_calculator ./src/probed_calculator.cpp)
+target_link_libraries(probed_calculator ${CMAKE_DL_LIBS} ${LIBCAF_LIBRARIES})
 
 add_executable(verbose_probe ./src/verbose_probe.cpp)
 target_link_libraries(verbose_probe ${CMAKE_DL_LIBS} ${LIBCAF_LIBRARIES})
