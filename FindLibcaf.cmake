@@ -79,14 +79,13 @@ foreach (comp ${Libcaf_FIND_COMPONENTS})
   mark_as_advanced(LIBCAF_LIBRARY_${UPPERCOMP})
   # skip probe_event as it is header only
   if (NOT ${comp} STREQUAL "probe_event")
-    message("looking for ${comp}")
     if ("${LIBCAF_LIBRARY_${UPPERCOMP}}" STREQUAL "LIBCAF_LIBRARY-NOTFOUND")
       # exit on first error
       break ()
     else ()
       set(LIBCAF_LIBRARIES ${LIBCAF_LIBRARIES} ${LIBCAF_LIBRARY_${UPPERCOMP}})
     endif ()
-  endif()
+  endif ()
 endforeach ()
 
 # final steps to tell CMake we're done
