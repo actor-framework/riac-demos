@@ -44,7 +44,9 @@ Dependencies
 ------------
 
 * https://github.com/actor-framework/actor-framework
+
 with the submodules
+
 * probe
 * probe-event
 * nexus
