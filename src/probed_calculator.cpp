@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
   if (!conf.valid()) {
     cerr << "Requires port (host defaults to 'localhost')\n"
             "  supported: '--host=','--port=' and '--server'\n"
-            "  connect to nexus: '--caf_probe_host=' and '--caf_probe_port='"
+            "  connect to nexus: '--caf-nexus-host=' and '--caf-nexus-port='"
          << endl;
     return 1;
   }
