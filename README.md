@@ -1,8 +1,8 @@
-agere14 examples
-================
+Probe Examples
+==============
 
-Example application to test the CAF probe, nexus and shell.
-Requires libcaf installed with the components probe, probe-event, nexus and shell.
+Example application to test probe, nexus and shell.
+Requires libcaf with the components probe, probe-event, nexus and shell.
 
 Build
 -----
@@ -14,30 +14,27 @@ Build
 
 
 Start
-----
+-----
 
 You need to start a nexus fist.
-It is included in CAF (start it from the CAF root with)
+It is included in CAF and per default located in the directory `build/bin`:
  ```
  ./build/bin/nexus <nexus-port>
  ```
 
-Start the  ```verbose_probe``` from this repo.
-Currently this will only tell when it receives a message from the nexus.
-Once the shell is running, it should be used instead.
- ```
- ./build/verbose_probe --host=<nexus-host> --port=<nexus-port>
- ```
+Next, start the `probed_calculator`:
 
-The ```probed_calculator``` will spawn new actor and sent messages,
-both can be observed in the verbose_probe or the shell.
-You need to start a server ...
 ```
-./build/probed_calculator --server --host=<calculator-host> --port=<calculator-port> --caf_probe_host=<nexus-host> --caf_probe_port=<nexus-port>
+./build/probed_calculator --server --port=<calculator-port> --caf-nexus-host=<nexus-host> --caf-nexus-port=<nexus-port>
 ```
-... and a client
+
+Usage
+-----
+
+You can start clients and also interact with the running system using CAF's shell. To start the calculator as client and add two numbers (e.g. 10 + 20), run:
+
 ```
-while :; do ./build/probed_calculator --host=<calculator-host> --port=<calculator-port> --caf_probe_host=<nexus-host> --caf_probe_port=<nexus-port>; sleep 1; done
+./build/probed_calculator --host=<calculator-host> --port=<calculator-port> --caf-nexus-host=<nexus-host> --caf-nexus-port=<nexus-port> -x 10 -y 20
 ```
 
 Dependencies
@@ -45,10 +42,10 @@ Dependencies
 
 * https://github.com/actor-framework/actor-framework
 
-with the submodules
+With the following submodules
 
-* probe
-* probe-event
-* nexus
-* shell
+* `libcaf_probe`
+* `libcaf_probe_event`
+* `nexus`
+* `shell`
 
