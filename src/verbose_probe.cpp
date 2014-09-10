@@ -3,7 +3,7 @@
 
 #include "caf/all.hpp"
 #include "caf/io/all.hpp"
-#include "caf/probe_event/all.hpp"
+#include "caf/riac/all.hpp"
 
 using std::cout;
 using std::cerr;
@@ -50,8 +50,8 @@ void from_args(probe_config& conf, int argc, char** argv) {
   }
 }
 
-void printer(event_based_actor* self, const probe_event::nexus_type& nex) {
-  self->send(nex, probe_event::add_listener{self});
+void printer(event_based_actor* self, const riac::nexus_type& nex) {
+  self->send(nex, riac::add_listener{self});
   self->become(
     others() >> [] {
       cout << "new message" << endl;
@@ -60,7 +60,7 @@ void printer(event_based_actor* self, const probe_event::nexus_type& nex) {
 }
 
 int main(int argc, char** argv) {
-  probe_event::announce_types();
+  riac::announce_message_types();
   probe_config conf;
   from_args(conf, argc, argv);
   if (!conf.valid()) {
@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
          << endl;
     return 1;
   }
-  auto nex = io::typed_remote_actor<probe_event::nexus_type>(conf.host,
+  auto nex = io::typed_remote_actor<riac::nexus_type>(conf.host,
                                                              conf.port);
   //auto nex = io::remote_actor(conf.host, conf.port);
   auto ver = spawn(printer, nex);

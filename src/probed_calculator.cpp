@@ -11,21 +11,20 @@
  * - ./build/bin/distributed_calculator -c -p 4242                            *
 \ ******************************************************************************/
 
+#include <cstdlib>
+#include <cassert>
+
 #include <vector>
 #include <string>
 #include <sstream>
-#include <cassert>
 #include <iostream>
 #include <functional>
 
-#include "caf/all.hpp"
-#include "caf/io/all.hpp"
-#include "caf/probe/all.hpp"
-#include "caf/probe_event/all.hpp"
-
-// the options_description API is deprecated
 #include "cppa/opt.hpp"
 
+#include "caf/all.hpp"
+#include "caf/io/all.hpp"
+#include "caf/riac/all.hpp"
 
 using namespace std;
 using namespace caf;
@@ -38,119 +37,89 @@ void calculator(event_based_actor* self) {
     },
     on(atom("minus"), arg_match) >> [](int a, int b) -> message {
       return make_message(atom("result"), a - b);
-    },
-    on(atom("quit")) >> [=] {
-      self->quit();
     }
   );
 }
 
-void seeker(event_based_actor* self, const string& host, uint16_t port) {
-  auto srvr = io::remote_actor(host, port);
-  self->sync_send(srvr, atom("plus"), 21, 21).then(
-    on(atom("result"), arg_match) >> [=] (int result) {
-      cout << "seeker found the answer: " << result << endl;
-    }
-  );
-}
+std::function<void()> verbose_exit;
 
-void spawner(event_based_actor* self, const string& host, uint16_t port) {
-  self->become(
-    on(atom("spawn")) >> [=] {
-      // self->send(srvr, atom("plus"), 21, 21);
-      spawn(seeker, host, port);
-      self->delayed_send(self, chrono::seconds(1), atom("spawn"));
-    }
-  );
-}
-
-// ##### command line argument stuff #####
-
-struct calc_config {
-  uint16_t port;
-  std::string host;
-  bool srvr;
-  inline calc_config() : port(0), srvr(false) { }
-  inline bool valid() const {
-    return port != 0;
-  }
-};
-
-const char host_arg[] = "--host=";
-const char port_arg[] = "--port=";
-const char srvr_arg[] = "--server";
-
-template<size_t Size>
-bool is_substr(const char (&needle)[Size], const char* haystack) {
-  // compare without null terminator
-  if (strncmp(needle, haystack, Size - 1) == 0) {
-    return true;
-  }
-  return false;
-}
-
-template<size_t Size>
-size_t cstr_len(const char (&)[Size]) {
-  return Size - 1;
-}
-
-void from_args(calc_config& conf, int argc, char** argv) {
-  for (auto i = argv; i != argv + argc; ++i) {
-    if (is_substr(host_arg, *i)) {
-      conf.host.assign(*i + cstr_len(host_arg));
-    } else if (is_substr(port_arg, *i)) {
-      int p = std::stoi(*i + cstr_len(port_arg));
-      conf.port = static_cast<uint16_t>(p);
-    } else if (is_substr(srvr_arg, *i)) {
-      conf.srvr=true;
-    }
+template <class T>
+void require(const optional<T>& arg, const char* arg_name) {
+  if (!arg) {
+    cerr << "*** " << arg_name << " missing" << endl;
+    verbose_exit();
   }
 }
 
-// ##### main #####
+void require(const std::string& arg, const char* arg_name) {
+  if (arg.empty()) {
+    cerr << "*** " << arg_name << " missing" << endl;
+    verbose_exit();
+  }
+}
+
+template <class T, class V, class... Vs>
+void require(T&& a0, const char* a1, V&& a2, const char* a3, Vs&&... as) {
+  require(std::forward<T>(a0), a1);
+  require(std::forward<V>(a2), a3, std::forward<Vs>(as)...);
+}
 
 int main(int argc, char** argv) {
-  probe_event::announce_types();
-  probe::init(argc,argv);
-  calc_config conf;
-  from_args(conf, argc, argv);
-  if (!conf.valid()) {
-    cerr << "Requires port (host defaults to 'localhost')\n"
-            "  supported: '--host=','--port=' and '--server'\n"
-            "  connect to nexus: '--caf-nexus-host=' and '--caf-nexus-port='"
-         << endl;
+  std::string nexus_host;
+  optional<uint16_t> nexus_port;
+  bool is_server = false;
+  std::string host = "localhost";
+  optional<uint16_t> port;
+  options_description desc;
+  optional<int> x;
+  optional<int> y;
+  bool args_valid = match_stream<std::string>(argv + 1, argv + argc) (
+    on_opt1('N', "caf-nexus-host", &desc, "nexus host") >> rd_arg(nexus_host),
+    on_opt1('P', "caf-nexus-port", &desc, "nexus port") >> rd_arg(nexus_port),
+    on_opt0('h', "help", &desc, "print help") >> print_desc_and_exit(&desc),
+    on_opt1('H', "host", &desc, "calculator server host") >> rd_arg(host),
+    on_opt1('p', "port", &desc, "set server port") >> rd_arg(port),
+    on_opt0('S', "server", &desc, "run as server") >> set_flag(is_server),
+    on_opt1('x', "x-value", &desc, "set X value", "client options") >> rd_arg(x),
+    on_opt1('y', "y-value", &desc, "set Y value", "client options") >> rd_arg(y)
+  );
+  verbose_exit = print_desc_and_exit(&desc, std::cerr, EXIT_FAILURE);
+  if (!args_valid) {
+    cerr << "*** invalid command line options" << endl;
+    verbose_exit();
+  }
+  require(port, "port",
+          nexus_port, "nexus port",
+          nexus_host, "nexus host");
+  if (!is_server) {
+    require(x, "x", y, "y");
+  }
+  if (!riac::init_probe(nexus_host, *nexus_port)) {
+    cerr << "probe::init failed" << endl;
     return 1;
   }
-  if (conf.srvr) {
-    cout << "Starting server on "
-         << "localhost:" << conf.port << endl;
-
+  if (is_server) {
+    cout << "Starting server on port " << *port << endl;
     try {
       // try to publish math actor at given port
-      io::publish(spawn(calculator), conf.port);
+      io::publish(spawn(calculator), *port);
     }
     catch (exception& e) {
-      cerr << "*** unable to publish math actor at port " << conf.port << "\n"
-         << to_verbose_string(e) // prints exception type and e.what()
-         << endl;
+      cerr << "*** unable to publish math actor at port " << *port << endl
+           << to_verbose_string(e) << endl;
+      return EXIT_FAILURE;
     }
   } else {
     cout << "Starting client and connecting to "
-         << conf.host << ":" << conf.port << endl;
-    if (conf.host.empty()) {
-      conf.host.assign("localhost");
-    }
+         << host << " on port " << *port << endl;
     scoped_actor self;
-    //auto client_spawner = spawn(spawner, conf.host, conf.port);
-    //self->delayed_send(client_spawner, chrono::seconds(1), atom("spawn"));
-    auto srvr = io::remote_actor(conf.host, conf.port);
-    self->sync_send(srvr, atom("plus"), 29, 13).await(
-      on(atom("result"), arg_match) >> [=] (int result) {
-        cout << "seeker found the answer: " << result << endl;
+    auto srvr = io::remote_actor(host, *port);
+    self->sync_send(srvr, atom("plus"), *x, *y).await(
+      on(atom("result"), arg_match) >> [&] (int result) {
+        cout << *x << " + " << *y << " = " << result << endl;
       }
     );
   }
   await_all_actors_done();
   shutdown();
-  return 0;
 }

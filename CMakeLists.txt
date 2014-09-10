@@ -66,7 +66,7 @@ else ()
   set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif ()
 
-find_package(Libcaf COMPONENTS core io probe probe_event REQUIRED)
+find_package(Libcaf COMPONENTS core io riac REQUIRED)
 # set(LD_FLAGS ${LD_FLAGS} ${LIBCAF_LIBRARIES})
 # set(INCLUDE_DIRS ${INCLUDE_DIRS} ${LIBCAF_INCLUDE_DIRS})
 
