@@ -72,6 +72,9 @@ find_package(Libcaf COMPONENTS core io riac REQUIRED)
 
 INCLUDE_DIRECTORIES(. include ${CMAKE_BINARY_DIR} ${LIBCAF_INCLUDE_DIRS})
 
+add_executable(ping_pong ./src/ping_pong.cpp)
+target_link_libraries(ping_pong ${CMAKE_DL_LIBS} ${LIBCAF_LIBRARIES})
+
 add_executable(probed_calculator ./src/probed_calculator.cpp)
 target_link_libraries(probed_calculator ${CMAKE_DL_LIBS} ${LIBCAF_LIBRARIES})
 
